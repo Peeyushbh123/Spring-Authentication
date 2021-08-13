@@ -1,16 +1,16 @@
 package com.example.demo.custom.exception;
 
-public class NotFoundException extends RuntimeException {
+public class EntityNotFoundException extends Exception {
     /**
      *
      */
     private static final long serialVersionUID = 1L;
     private String errorMessage;
 
-    public NotFoundException() {
+    public EntityNotFoundException() {
 
     }
-    public NotFoundException(String errorMessage) {
+    public EntityNotFoundException(String errorMessage) {
         super();
         this.errorMessage = errorMessage;
     }

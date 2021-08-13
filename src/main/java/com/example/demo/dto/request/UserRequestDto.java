@@ -2,16 +2,28 @@ package com.example.demo.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.Size;
+
 public class UserRequestDto {
+    @NotEmpty
+    @Size(min=2)
     @JsonProperty("first_name")
     private String firstName;
 
+    @NotEmpty
+    @Size(min=2)
     @JsonProperty("last_name")
     private String lastName;
 
+    @NotEmpty
+    @Email
     @JsonProperty("email_id")
     private String emailId;
 
+    @NotEmpty
+    @Size(min = 6,max = 60)
     @JsonProperty("password")
     private String password;
 

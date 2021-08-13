@@ -18,6 +18,8 @@ public enum MessageEnum {
     EMAIL_NOT_VALID,
     SEND_PROPER_PASSWORD,
     NO_USERS,
-    NOT_LOGGED_IN;
+    NOT_LOGGED_IN,
+    NOT_AUTHORIZED,
+    ALREADY_LOGGED_IN;
 
 }

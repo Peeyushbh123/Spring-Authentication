@@ -10,39 +10,37 @@ public class UpdateRequestDto {
     @JsonProperty("last_name")
     private String lastName;
 
-    @JsonProperty("password")
-    private String password;
+    @JsonProperty("new_password")
+    private String newPassword;
+
+    @JsonProperty("old_password")
+    private String oldPassword;
 
     public UpdateRequestDto() {
     }
 
-    public UpdateRequestDto(String firstName, String lastName, String password) {
+    public UpdateRequestDto(String firstName, String lastName, String oldpassword,String newPassword) {
         this.firstName = firstName;
         this.lastName = lastName;
-        this.password = password;
+        this.newPassword = newPassword;
+        this.oldPassword=oldpassword;
     }
 
     public String getFirstName() {
+
         return firstName;
     }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
+    public String getNewPassword() {
+        return newPassword;
+    }
+
+    public String getOldPassword() {
+        return oldPassword;
     }
 
     public String getLastName() {
+
         return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
     }
 }

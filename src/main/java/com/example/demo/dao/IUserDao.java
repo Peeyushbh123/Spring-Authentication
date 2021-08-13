@@ -3,6 +3,7 @@ package com.example.demo.dao;
 import com.example.demo.dto.response.UserResponseDto;
 import com.example.demo.entities.User;
 
+import javax.jws.soap.SOAPBinding;
 import java.util.List;
 import java.util.Optional;
 

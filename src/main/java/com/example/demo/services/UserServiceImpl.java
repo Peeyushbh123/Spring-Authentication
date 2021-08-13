@@ -2,9 +2,8 @@ package com.example.demo.services;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import com.example.demo.custom.exception.NotFoundException;
+import com.example.demo.custom.exception.EntityNotFoundException;
 import com.example.demo.custom.exception.ServiceLayerException;
 import com.example.demo.dao.IUserDao;
 import com.example.demo.dto.request.LoginRequestDto;
@@ -41,14 +40,15 @@ public class UserServiceImpl implements IUserService {
 	@Autowired
 	private IUserRepository userRepository;
 
+	// Description-- get All Users
 	@Override
-	public List<UserResponseDto> getAllUsers(){
+	public List<UserResponseDto> getAllUsers() throws EntityNotFoundException {
 		LOGGER.info("Getting Users...");
 		List<UserResponseDto> userResponseList=new ArrayList<>();
 		List<User> userList=iUserDao.getAllUsers();
 		if(CollectionUtils.isEmpty(userList)) {
 			LOGGER.warn("No Users!");
-			throw new NotFoundException(MessageEnum.NO_USERS.toString());
+			throw new EntityNotFoundException(MessageEnum.NO_USERS.toString());
 		}
 		for(User user:userList){
 			UserResponseDto userResponseDto=new UserResponseDto();
@@ -59,14 +59,11 @@ public class UserServiceImpl implements IUserService {
 		return userResponseList;
 	}
 
+	// Description-- adding a user
 	@Transactional
 	@Override
-	public UserResponseDto addUser(UserRequestDto u) {
+	public UserResponseDto addUser(UserRequestDto u) throws ServiceLayerException{
 		LOGGER.info("adding User...");
-		if(u==null) {
-			LOGGER.error("user not found");
-			throw new NotFoundException(MessageEnum.GIVEN_DETAILS_ARE_ILLEGAL.toString());
-		}
 		if(!userServiceValidators.is_Valid_Password(u.getPassword())) {
 			LOGGER.error("Password is not valid!");
 			throw new ServiceLayerException(MessageEnum.PASSWORD_STRENGTH_WEAK.toString());
@@ -75,8 +72,9 @@ public class UserServiceImpl implements IUserService {
 			LOGGER.warn("Email Already Exists!");
 			throw new ServiceLayerException(MessageEnum.EMAIL_ALREADY_USED.toString());
 		}
-		User user=new User();
+
 		String encodedPassword=bCryptPasswordEncoder.encode(u.getPassword());
+		User user=new User();
 		user.setPassword(encodedPassword);
 		user.setIs_login(0);
 		user.setFirstname(u.getFirstName());
@@ -89,14 +87,23 @@ public class UserServiceImpl implements IUserService {
 		return userResponse;
 	}
 
+	// Description-- delete a user with given id and password
 	@Transactional
 	@Override
-	public UserResponseDto deleteUser(int id) {
+	public UserResponseDto deleteUser(int id,String password) throws EntityNotFoundException,ServiceLayerException{
 		LOGGER.info("Deleting user..");
 		Optional<User> deleteUser=iUserDao.getUserById(id);
 		if(!deleteUser.isPresent()) {
 			LOGGER.warn("user not found");
-			throw new NotFoundException(MessageEnum.DATA_NOT_FOUND.toString());
+			throw new EntityNotFoundException(MessageEnum.DATA_NOT_FOUND.toString());
+		}
+		if(!bCryptPasswordEncoder.matches(password,deleteUser.get().getPassword())){
+			LOGGER.error("Not authorised");
+			throw new ServiceLayerException(MessageEnum.NOT_AUTHORIZED.toString());
+		}
+		if(deleteUser.get().getIs_login()==0){
+			LOGGER.error("Not logged in");
+			throw new ServiceLayerException(MessageEnum.NOT_LOGGED_IN.toString());
 		}
 		LOGGER.info("Successfully Deleted!");
 		iUserDao.deleteUserById(id);
@@ -105,65 +112,87 @@ public class UserServiceImpl implements IUserService {
 		return userResponse;
 	}
 
+	// Description-- logging in with given credentials
 	@Override
-	public UserResponseDto loginUser(LoginRequestDto credentials) {
+	public UserResponseDto loginUser(LoginRequestDto credentials) throws EntityNotFoundException,ServiceLayerException{
 		LOGGER.info("Logging user..");
 		Optional<User> findUser=userRepository.findByEmail(credentials.getEmailId());
 		if(!findUser.isPresent()) {
 			LOGGER.warn("user not found");
-			throw new NotFoundException(MessageEnum.DATA_NOT_FOUND.toString());
+			throw new EntityNotFoundException(MessageEnum.DATA_NOT_FOUND.toString());
+		}
+		User user = findUser.get();
+		if(user.getIs_login()==1){
+			LOGGER.warn("Already logged in");
+			throw new ServiceLayerException(MessageEnum.ALREADY_LOGGED_IN.toString());
 		}
 		String givenPassword=credentials.getPassword();
-		String correctPassword=findUser.get().getPassword();
+		String correctPassword= user.getPassword();
 		if(!bCryptPasswordEncoder.matches(givenPassword, correctPassword)) {
 			LOGGER.info("Password not match");
 			throw new ServiceLayerException(MessageEnum.PASSWORD_NOT_MATCH.toString());
 		}
 		LOGGER.info("Successfully logged in!");
-		findUser.get().setIs_login(1);
-		iUserDao.addUser(findUser.get());
+		user.setIs_login(1);
+		iUserDao.addUser(user);
 		UserResponseDto userResponse=new UserResponseDto();
-		userResponse.convertToUserResponse(findUser.get());
+		userResponse.convertToUserResponse(user);
 		return userResponse;
 	}
 
+	// Description-- logging out with given id and password
 	@Override
-	public UserResponseDto logoutUser(int userId) {
+	public UserResponseDto logoutUser(int userId,String password) throws EntityNotFoundException,ServiceLayerException{
 		LOGGER.info("Logging out user..");
 		Optional<User> findUser=iUserDao.getUserById(userId);
 		if(!findUser.isPresent()) {
 			LOGGER.warn("user is null");
-			throw new NotFoundException(MessageEnum.DATA_NOT_FOUND.toString());
+			throw new EntityNotFoundException(MessageEnum.DATA_NOT_FOUND.toString());
+		}
+		User user = findUser.get();
+		if(!bCryptPasswordEncoder.matches(password, user.getPassword())){
+			LOGGER.error("Not authorised");
+			throw new ServiceLayerException(MessageEnum.NOT_AUTHORIZED.toString());
+		}
+		if(user.getIs_login()==0){
+			LOGGER.error("user not logged in");
+			throw new ServiceLayerException(MessageEnum.NOT_LOGGED_IN.toString());
 		}
 		LOGGER.info("Successfully logged out!");
-		findUser.get().setIs_login(0);
-		iUserDao.addUser(findUser.get());
+		user.setIs_login(0);
+		User savedUser=iUserDao.addUser(user);
 		UserResponseDto userResponse=new UserResponseDto();
-		userResponse.convertToUserResponse(findUser.get());
+		userResponse.convertToUserResponse(savedUser);
 		return userResponse;
 	}
 
+	// Description-- updating details of user with given password and userId
 	@Transactional
 	@Override
-	public UserResponseDto updateUser(UpdateRequestDto updateDetails, int userId) {
+	public UserResponseDto updateUser(UpdateRequestDto updateDetails, int userId) throws EntityNotFoundException,ServiceLayerException {
 		LOGGER.info("Updating user..");
 		Optional<User> findUser=iUserDao.getUserById(userId);
 		if(!findUser.isPresent()) {
 			LOGGER.warn("user not found");
-			throw new NotFoundException(MessageEnum.DATA_NOT_FOUND.toString());
+			throw new EntityNotFoundException(MessageEnum.DATA_NOT_FOUND.toString());
 		}
-		if(findUser.get().getIs_login()==0){
+		User user = findUser.get();
+		if(!bCryptPasswordEncoder.matches(updateDetails.getOldPassword(), user.getPassword())){
+			LOGGER.error("Not Authorised");
+			throw new ServiceLayerException(MessageEnum.NOT_AUTHORIZED.toString());
+		}
+		if(user.getIs_login()==0){
 			LOGGER.error("user not logged in!");
 			throw new ServiceLayerException(MessageEnum.NOT_LOGGED_IN.toString());
 		}
-		findUser.get().setFirstname(updateDetails.getFirstName());
-		findUser.get().setLastname(updateDetails.getLastName());
-		String encodedPassword=bCryptPasswordEncoder.encode(updateDetails.getPassword());
-		findUser.get().setPassword(encodedPassword);
+		user.setFirstname(updateDetails.getFirstName());
+		user.setLastname(updateDetails.getLastName());
+		String encodedPassword=bCryptPasswordEncoder.encode(updateDetails.getNewPassword());
+		user.setPassword(encodedPassword);
 		LOGGER.info("Successfully updated!");
-		iUserDao.addUser(findUser.get());
+		iUserDao.addUser(user);
 		UserResponseDto userResponse=new UserResponseDto();
-		userResponse.convertToUserResponse(findUser.get());
+		userResponse.convertToUserResponse(user);
 		return userResponse;
 	}
 	

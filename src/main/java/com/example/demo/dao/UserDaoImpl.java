@@ -15,21 +15,25 @@ public class UserDaoImpl implements IUserDao {
     @Autowired
     private IUserRepository userRepository;
 
+    // Description-- Get a user with id
     @Override
     public Optional<User> getUserById(int id){
         return userRepository.findById(id);
     }
 
+    // Description-- Get all users
     @Override
     public List<User> getAllUsers(){
         return userRepository.findAll();
     }
 
+    // Description-- Adding a user
     @Override
     public User addUser(User user){
         return userRepository.save(user);
     }
 
+    // Description-- Delete a user with id
     @Override
     public void deleteUserById(int id){
         userRepository.deleteById(id);

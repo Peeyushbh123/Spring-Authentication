@@ -1,6 +1,6 @@
 package com.example.demo.custom.exception;
 
-public class ServiceLayerException extends RuntimeException {
+public class ServiceLayerException extends Exception {
     /**
      *
      */

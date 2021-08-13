@@ -93,24 +93,16 @@ public class User {
 		this.is_login = is_login;
 	}
 
-	@NotEmpty
-	@Email
 	@Column(unique=true, length=60)
 	private String email;
 
-	@NotEmpty
-	@Size(min = 6,max = 60)
 	@Column(length=90)
 	private String password;
 
-	@NotEmpty
 	@Column(name="first_name",length=60)
-	@Size(min = 2)
 	private String firstname;
 
-	@NotEmpty
 	@Column(name="last_name",length=60)
-	@Size(min = 2)
 	private String lastname;
 
 	@Column(name="is_logged")
